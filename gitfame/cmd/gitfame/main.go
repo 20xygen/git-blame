@@ -2,6 +2,10 @@
 
 package main
 
-func main() {
+import (
+	"gitlab.com/slon/shad-go/gitfame/internal"
+)
 
+func main() {
+	internal.TestDir()
 }
