@@ -92,9 +92,9 @@ func getFileFilter(ps *params, info *langInfo) func(*file) bool {
 }
 
 func processFile(fl *file, st *stat, ps *params) error {
-	bo, err := parseBlame(fl.path(), ps.revision)
+	bo, err := parseBlame(ps.path, fl.path(), ps.revision)
 	if err != nil {
-		fmt.Printf("blame parsing error on the %s: %v\n", fl.path(), err)
+		//fmt.Printf("blame parsing error on the %s: %v\n", fl.path(), err)
 		return err
 	}
 	for _, ln := range bo.lines {
@@ -124,7 +124,7 @@ func collectStat(ps *params, info *langInfo) (*stat, error) {
 		users: make(map[string]*user),
 	}
 
-	d, err := getDir(ps.path)
+	d, err := getDirGit(ps.path, ps.revision)
 	if err != nil {
 		return nil, err
 	}
@@ -133,7 +133,7 @@ func collectStat(ps *params, info *langInfo) (*stat, error) {
 
 	err = d.walk(func(fl *file) error {
 		if filter(fl) {
-			fmt.Println("Found valid file")
+			fmt.Println(fl.path())
 			return processFile(fl, st, ps)
 		}
 		return nil

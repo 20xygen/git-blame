@@ -10,8 +10,11 @@ import (
 	"strings"
 )
 
-func blame(path, revision string) ([]byte, error) {
-	out, err := exec.Command("git", "blame", "--porcelain", revision, path).Output()
+func blame(repo, path, revision string) ([]byte, error) {
+	cmd := exec.Command("git", "blame", "--porcelain", revision, path)
+	cmd.Dir = repo
+
+	out, err := cmd.CombinedOutput()
 	if err != nil {
 		return nil, err
 	}
@@ -36,10 +39,10 @@ type blameOutput struct {
 	lines   []*line
 }
 
-func parseBlame(path, revision string) (*blameOutput, error) {
-	out, err := blame(path, revision)
+func parseBlame(repo, path, revision string) (*blameOutput, error) {
+	out, err := blame(repo, path, revision)
 	if err != nil {
-		fmt.Println("Blame execution error:", err)
+		fmt.Println(repo, path)
 		return nil, err
 	}
 

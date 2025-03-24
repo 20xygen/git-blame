@@ -3,6 +3,7 @@ package internal
 import (
 	"fmt"
 	"github.com/spf13/cobra"
+	"path/filepath"
 	"strings"
 )
 
@@ -82,15 +83,24 @@ func command(cmd *cobra.Command, args []string) {
 	fmt.Print("\nGiven parameters are:\n\n")
 	fmt.Println(ps.String())
 
+	var err error
+	ps.path, err = filepath.Abs(path)
+	if err != nil {
+		fmt.Printf("Incorrect path: %v\n", err)
+		return
+	}
+
+	fmt.Printf("\nCleaned path: %s\n\n", ps.path)
+
 	info, err := getLangInfo()
 	if err != nil {
-		fmt.Println(err)
+		fmt.Printf("Error accured while loading langauges information: %v\n", err)
 		return
 	}
 
 	st, err := collectStat(ps, info)
 	if err != nil {
-		fmt.Println(err)
+		fmt.Printf("Error accured while collecting the statistics: %v\n", err)
 		return
 	}
 

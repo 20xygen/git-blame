@@ -1,9 +1,12 @@
 package internal
 
 import (
+	"bufio"
+	"bytes"
 	"encoding/json"
 	"fmt"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"sort"
 	"strings"
@@ -141,23 +144,80 @@ func (d *dir) asListHelper(builder *strings.Builder) {
 		kid := d.kids[k]
 		if sub, ok := kid.(*dir); ok {
 			sub.asListHelper(builder)
-		}
-	}
-	for _, k := range keys {
-		kid := d.kids[k]
-		if fl, ok := kid.(*file); ok {
+		} else if fl, ok := kid.(*file); ok {
 			builder.WriteString(fl.path())
 			builder.WriteString("\n")
 		}
 	}
+}
 
+func gitTree(path, revision string) ([]byte, error) {
+	cmd := exec.Command("git", "ls-tree", "-r", revision)
+	cmd.Dir = path
+
+	out, err := cmd.CombinedOutput()
+	if err != nil {
+		return nil, fmt.Errorf("git ls-tree failed: %s", err)
+	}
+	return out, nil
+}
+
+func gitTreePaths(path, revision string) ([]string, error) {
+	out, err := gitTree(path, revision)
+	if err != nil {
+		return nil, err
+	}
+
+	var paths []string
+	scanner := bufio.NewScanner(bytes.NewReader(out))
+	for scanner.Scan() {
+		ln := scanner.Text()
+		parts := strings.Split(ln, "\t")
+		if len(parts) != 2 {
+			return nil, fmt.Errorf("wrong output format (git ls-tree):%s", ln)
+		}
+		paths = append(paths, parts[1])
+	}
+
+	return paths, nil
+}
+
+func getDirPaths(rootPath string, paths []string) *dir {
+	root := &dir{
+		name: rootPath,
+		kids: make(map[string]entity),
+	}
+
+	for _, path := range paths {
+		components := strings.Split(path, string(filepath.Separator))
+
+		currentDir := root
+		for i := 0; i < len(components)-1; i++ {
+			dirName := components[i]
+			if _, exists := currentDir.kids[dirName]; !exists {
+				newDir := dir{
+					name: dirName,
+					dad:  currentDir,
+					kids: make(map[string]entity),
+				}
+				currentDir.kids[dirName] = &newDir
+			}
+			currentDir = currentDir.kids[dirName].(*dir)
+		}
+
+		name := components[len(components)-1]
+		newFile := file{
+			name: name,
+			dad:  currentDir,
+		}
+		currentDir.kids[name] = &newFile
+	}
+
+	return root
 }
 
 func getDir(path string) (*dir, error) {
-	root := dir{
-		name: path,
-		kids: make(map[string]entity),
-	}
+	var paths *[]string
 
 	err := filepath.Walk(path, func(filePath string, info os.FileInfo, err error) error {
 		if err != nil {
@@ -173,38 +233,7 @@ func getDir(path string) (*dir, error) {
 			return nil
 		}
 
-		components := strings.Split(relPath, string(filepath.Separator))
-
-		currentDir := &root
-		for i := 0; i < len(components)-1; i++ {
-			dirName := components[i]
-			if _, exists := currentDir.kids[dirName]; !exists {
-				newDir := dir{
-					name: dirName,
-					dad:  currentDir,
-					kids: make(map[string]entity),
-				}
-				currentDir.kids[dirName] = &newDir
-			}
-			currentDir = currentDir.kids[dirName].(*dir)
-		}
-
-		name := components[len(components)-1]
-		if info.IsDir() {
-			newDir := dir{
-				name: name,
-				dad:  currentDir,
-				kids: make(map[string]entity),
-			}
-			currentDir.kids[name] = &newDir
-		} else {
-			newFile := file{
-				name: name,
-				dad:  currentDir,
-			}
-			currentDir.kids[name] = &newFile
-		}
-
+		*paths = append(*paths, relPath)
 		return nil
 	})
 
@@ -212,7 +241,15 @@ func getDir(path string) (*dir, error) {
 		return nil, err
 	}
 
-	return &root, nil
+	return getDirPaths(path, *paths), nil
+}
+
+func getDirGit(path, revision string) (*dir, error) {
+	paths, err := gitTreePaths(path, revision)
+	if err != nil {
+		return nil, err
+	}
+	return getDirPaths(path, paths), nil
 }
 
 func (d *dir) walk(fn func(*file) error) error {
