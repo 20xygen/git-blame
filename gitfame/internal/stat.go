@@ -1,29 +1,62 @@
 package internal
 
 import (
-	"fmt"
 	"path/filepath"
 )
 
-type user struct {
-	name             string
-	commitToLinesNum map[string]uint64
+type statFile struct {
+	linesNum int
 }
 
-func (u *user) totalLines() uint64 {
-	var su uint64
-	for _, v := range u.commitToLinesNum {
-		su += v
+type statCommit struct {
+	files map[string]statFile
+}
+
+type statUser struct {
+	commits map[string]*statCommit
+}
+
+func (u *statUser) totalLines() int {
+	var sum int
+	for _, com := range u.commits {
+		for _, fl := range com.files {
+			sum += fl.linesNum
+		}
 	}
-	return su
+	return sum
 }
 
-func (u *user) totalCommits() int {
-	return len(u.commitToLinesNum)
+func (u *statUser) totalFiles() int {
+	var sum int
+	for _, com := range u.commits {
+		sum += len(com.files)
+	}
+	return sum
+}
+
+func (u *statUser) totalCommits() int {
+	return len(u.commits)
+}
+
+type statVals struct {
+	Commits int `json:"commits"`
+	Files   int `json:"files"`
+	Lines   int `json:"lines"`
+}
+
+func (u *statUser) total() (vals statVals) {
+	vals.Commits = len(u.commits)
+	for _, com := range u.commits {
+		vals.Files += len(com.files)
+		for _, fl := range com.files {
+			vals.Lines += fl.linesNum
+		}
+	}
+	return
 }
 
 type stat struct {
-	users map[string]*user
+	users map[string]*statUser
 }
 
 func contains(list []string, target string) bool {
@@ -107,21 +140,28 @@ func processFile(fl *file, st *stat, ps *params) error {
 
 		usr, ok := st.users[name]
 		if !ok {
-			usr = &user{
-				name:             name,
-				commitToLinesNum: make(map[string]uint64),
+			usr = &statUser{
+				commits: make(map[string]*statCommit),
 			}
 			st.users[name] = usr
 		}
 
-		usr.commitToLinesNum[ln.com.hash]++
+		com, ok := usr.commits[ln.com.hash]
+		if !ok {
+			com = &statCommit{
+				files: make(map[string]statFile),
+			}
+			usr.commits[ln.com.hash] = com
+		}
+
+		com.files[fl.path()] = statFile{com.files[fl.path()].linesNum + 1}
 	}
 	return nil
 }
 
 func collectStat(ps *params, info *langInfo) (*stat, error) {
 	st := &stat{
-		users: make(map[string]*user),
+		users: make(map[string]*statUser),
 	}
 
 	d, err := getDirGit(ps.path, ps.revision)
@@ -133,7 +173,6 @@ func collectStat(ps *params, info *langInfo) (*stat, error) {
 
 	err = d.walk(func(fl *file) error {
 		if filter(fl) {
-			fmt.Println(fl.path())
 			return processFile(fl, st, ps)
 		}
 		return nil

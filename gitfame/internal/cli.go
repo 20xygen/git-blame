@@ -21,12 +21,13 @@ var (
 type params struct {
 	path         string
 	revision     string
-	orderBy      string
+	orderBy      []string
 	useCommitter bool
 	extensions   []string
 	languages    []string
 	exclude      []string
 	restrict     []string
+	format       string
 }
 
 func (ps *params) filterLanguages(info *langInfo) error {
@@ -62,12 +63,13 @@ func (ps *params) String() string {
 func command(cmd *cobra.Command, args []string) {
 	path, _ := cmd.Flags().GetString("repository")
 	revision, _ := cmd.Flags().GetString("revision")
-	orderBy, _ := cmd.Flags().GetString("order-by")
+	orderBy, _ := cmd.Flags().GetStringSlice("order-by")
 	useCommitter, _ := cmd.Flags().GetBool("use-committer")
 	extensions, _ := cmd.Flags().GetStringSlice("extensions")
 	languages, _ := cmd.Flags().GetStringSlice("languages")
 	exclude, _ := cmd.Flags().GetStringSlice("exclude")
 	restrict, _ := cmd.Flags().GetStringSlice("restrict-to")
+	format, _ := cmd.Flags().GetString("format")
 
 	ps := &params{
 		path:         path,
@@ -78,6 +80,7 @@ func command(cmd *cobra.Command, args []string) {
 		languages:    languages,
 		exclude:      exclude,
 		restrict:     restrict,
+		format:       format,
 	}
 
 	fmt.Print("\nGiven parameters are:\n\n")
@@ -104,9 +107,17 @@ func command(cmd *cobra.Command, args []string) {
 		return
 	}
 
-	fmt.Print("Name\t\tCommits\tLines\n\n")
-	for _, usr := range st.users {
-		fmt.Printf("%s\t%d\t%d\n", usr.name, usr.totalCommits(), usr.totalLines())
+	switch format {
+	case "tabular":
+		fmt.Print(statTabular(st, ps.orderBy))
+	case "json":
+		fmt.Println(statJson(st, ps.orderBy))
+	case "json-lines":
+		fmt.Print(statJsonLines(st, ps.orderBy))
+	case "csv":
+		fmt.Print(statCSV(st, ps.orderBy))
+	default:
+		fmt.Print("Wrong format option.\n") // TODO: handle as error
 	}
 }
 
@@ -117,7 +128,7 @@ func Execute() error {
 func init() {
 	rootCmd.Flags().StringP("repository", "r", ".", "Git repository path")
 	rootCmd.Flags().StringP("revision", "R", "HEAD", "Git revision")
-	rootCmd.Flags().StringP("order-by", "o", "lines", "Sort key: lines/commits/files")
+	rootCmd.Flags().StringSliceP("order-by", "o", []string{"lines", "commits", "files"}, "Sort key as comma-separated list of 'lines', 'commits', 'names' or 'files'")
 	rootCmd.Flags().BoolP("use-committer", "C", false, "Use committer instead of author")
 	rootCmd.Flags().StringSliceP("extensions", "e", nil, "File extensions filter (comma-separated)")
 	rootCmd.Flags().StringSliceP("languages", "l", nil, "Languages filter (comma-separated)")
