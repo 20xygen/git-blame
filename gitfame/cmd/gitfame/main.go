@@ -7,5 +7,5 @@ import (
 )
 
 func main() {
-	internal.TestDir()
+	internal.Execute()
 }
