@@ -10,8 +10,8 @@ import (
 	"strings"
 )
 
-func blame(path string) ([]byte, error) {
-	out, err := exec.Command("git", "blame", "--porcelain", path).Output()
+func blame(path, revision string) ([]byte, error) {
+	out, err := exec.Command("git", "blame", "--porcelain", revision, path).Output()
 	if err != nil {
 		return nil, err
 	}
@@ -36,9 +36,10 @@ type blameOutput struct {
 	lines   []*line
 }
 
-func parseBlame(path string) (*blameOutput, error) {
-	out, err := blame(path)
+func parseBlame(path, revision string) (*blameOutput, error) {
+	out, err := blame(path, revision)
 	if err != nil {
+		fmt.Println("Blame execution error:", err)
 		return nil, err
 	}
 
@@ -100,6 +101,10 @@ func parseBlame(path string) (*blameOutput, error) {
 			curPos:  cur,
 			content: nextLine[1:],
 		})
+	}
+
+	for _, ln := range bo.lines {
+		ln.com.linesNum++
 	}
 
 	return &bo, nil

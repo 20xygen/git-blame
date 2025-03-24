@@ -3,6 +3,7 @@ package internal
 import (
 	"fmt"
 	"github.com/spf13/cobra"
+	"strings"
 )
 
 // go run gitfame/cmd/gitfame/main.go --extensions '.go,.md' --languages 'go,markdown' --exclude 'vendor/*'
@@ -12,28 +13,91 @@ var (
 		Short: "Analyze git blame statistics",
 		Long:  "Gitfame is a simple CLI tool to analyze git blame directory statistics.",
 		Args:  cobra.NoArgs,
-		Run:   cliTest,
+		Run:   command,
 	}
 )
 
-func cliTest(cmd *cobra.Command, args []string) {
+type params struct {
+	path         string
+	revision     string
+	orderBy      string
+	useCommitter bool
+	extensions   []string
+	languages    []string
+	exclude      []string
+	restrict     []string
+}
+
+func (ps *params) filterLanguages(info *langInfo) error {
+	var filtered []string
+	flag := false
+	for _, lang := range ps.languages {
+		if _, ok := info.extToLang[lang]; ok {
+			filtered = append(filtered, lang)
+		} else {
+			flag = true
+		}
+	}
+	ps.languages = filtered
+	if flag {
+		return fmt.Errorf("there was an undefined language in params")
+	}
+	return nil
+}
+
+func (ps *params) String() string {
+	var builder strings.Builder
+	_, _ = fmt.Fprintf(&builder, "path\t\t%s\n", ps.path)
+	_, _ = fmt.Fprintf(&builder, "revision\t%s\n", ps.revision)
+	_, _ = fmt.Fprintf(&builder, "orderBy\t\t%s\n", ps.orderBy)
+	_, _ = fmt.Fprintf(&builder, "useCommitter\t%t\n", ps.useCommitter)
+	_, _ = fmt.Fprintf(&builder, "extensions\t\t%v\n", ps.extensions)
+	_, _ = fmt.Fprintf(&builder, "languages\t%v\n", ps.languages)
+	_, _ = fmt.Fprintf(&builder, "exclude\t\t%v\n", ps.exclude)
+	_, _ = fmt.Fprintf(&builder, "restrict\t%v\n", ps.restrict)
+	return builder.String()
+}
+
+func command(cmd *cobra.Command, args []string) {
 	path, _ := cmd.Flags().GetString("repository")
 	revision, _ := cmd.Flags().GetString("revision")
 	orderBy, _ := cmd.Flags().GetString("order-by")
 	useCommitter, _ := cmd.Flags().GetBool("use-committer")
-	exts, _ := cmd.Flags().GetStringSlice("extensions")
-	langs, _ := cmd.Flags().GetStringSlice("languages")
+	extensions, _ := cmd.Flags().GetStringSlice("extensions")
+	languages, _ := cmd.Flags().GetStringSlice("languages")
 	exclude, _ := cmd.Flags().GetStringSlice("exclude")
 	restrict, _ := cmd.Flags().GetStringSlice("restrict-to")
 
-	fmt.Printf("path\t%s\n", path)
-	fmt.Printf("revision\t%s\n", revision)
-	fmt.Printf("orderBy\t%s\n", orderBy)
-	fmt.Printf("useCommitter\t%t\n", useCommitter)
-	fmt.Printf("exts\t%v\n", exts)
-	fmt.Printf("languages\t%v\n", langs)
-	fmt.Printf("exclude\t%v\n", exclude)
-	fmt.Printf("restrict\t%v\n", restrict)
+	ps := &params{
+		path:         path,
+		revision:     revision,
+		orderBy:      orderBy,
+		useCommitter: useCommitter,
+		extensions:   extensions,
+		languages:    languages,
+		exclude:      exclude,
+		restrict:     restrict,
+	}
+
+	fmt.Print("\nGiven parameters are:\n\n")
+	fmt.Println(ps.String())
+
+	info, err := getLangInfo()
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
+
+	st, err := collectStat(ps, info)
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
+
+	fmt.Print("Name\t\tCommits\tLines\n\n")
+	for _, usr := range st.users {
+		fmt.Printf("%s\t%d\t%d\n", usr.name, usr.totalCommits(), usr.totalLines())
+	}
 }
 
 func Execute() error {

@@ -11,6 +11,7 @@ import (
 
 type langInfo struct {
 	extToLang map[string]string
+	langToExs map[string][]string
 }
 
 func getLangInfo() (*langInfo, error) {
@@ -31,9 +32,11 @@ func getLangInfo() (*langInfo, error) {
 
 	info := &langInfo{
 		extToLang: make(map[string]string),
+		langToExs: make(map[string][]string),
 	}
 
 	for _, lang := range languages {
+		info.langToExs[lang.Name] = lang.Extensions
 		for _, ext := range lang.Extensions {
 			info.extToLang[ext] = lang.Name
 		}
@@ -210,4 +213,21 @@ func getDir(path string) (*dir, error) {
 	}
 
 	return &root, nil
+}
+
+func (d *dir) walk(fn func(*file) error) error {
+	for _, kid := range d.kids {
+		if fl, ok := kid.(*file); ok {
+			err := fn(fl)
+			if err != nil {
+				return err
+			}
+		} else if sub, ok := kid.(*dir); ok {
+			err := sub.walk(fn)
+			if err != nil {
+				return err
+			}
+		}
+	}
+	return nil
 }

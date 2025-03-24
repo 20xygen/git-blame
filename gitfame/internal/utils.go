@@ -23,7 +23,7 @@ func TestDir() {
 
 	fl := d.kids["cmd"].(*dir).kids["gitfame"].(*dir).kids["main.go"].(*file)
 
-	bo, err := parseBlame(fl.path())
+	bo, err := parseBlame(fl.path(), "HEAD")
 	if err != nil {
 		fmt.Println(err)
 		return
