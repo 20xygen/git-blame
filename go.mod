@@ -6,6 +6,7 @@ require (
 	github.com/jedib0t/go-pretty/v6 v6.6.7
 	github.com/spf13/cobra v1.1.3
 	github.com/stretchr/testify v1.10.0
+	gitlab.com/slon/shad-go v0.0.0-20231003165454-50b27acb6315
 	golang.org/x/perf v0.0.0-20191209155426-36b577b0eb03
 	golang.org/x/tools v0.21.1-0.20240508182429-e35e4ccd0d2d
 	gopkg.in/natefinch/lumberjack.v2 v2.2.1
@@ -25,6 +26,5 @@ require (
 	golang.org/x/sync v0.11.0 // indirect
 	golang.org/x/sys v0.30.0 // indirect
 	golang.org/x/text v0.22.0 // indirect
-	gopkg.in/check.v1 v1.0.0-20201130134442-10cb98267c6c // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 )
