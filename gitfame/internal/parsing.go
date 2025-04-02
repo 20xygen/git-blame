@@ -4,16 +4,15 @@ import (
 	"bufio"
 	"bytes"
 	"fmt"
+	"log/slog"
 	"os/exec"
 	"sort"
 	"strconv"
 	"strings"
 )
 
-func blame(repo, path, revision string) ([]byte, error) {
-	cmd := exec.Command("git", "blame", "--porcelain", revision, path)
+func commandOutput(cmd *exec.Cmd, repo string) ([]byte, error) { // TODO: move to another file
 	cmd.Dir = repo
-
 	out, err := cmd.CombinedOutput()
 	if err != nil {
 		return nil, err
@@ -21,10 +20,33 @@ func blame(repo, path, revision string) ([]byte, error) {
 	return out, nil
 }
 
+func blame(repo, path, revision string) ([]byte, error) {
+	cmd := exec.Command("git", "blame", "--porcelain", revision, path)
+	return commandOutput(cmd, repo)
+}
+
+func revList(repo, path, revision string) ([]byte, error) {
+	cmd := exec.Command("git", "rev-list", "-1", revision, "--", path)
+	return commandOutput(cmd, repo)
+}
+
+func gitLog(repo, path, revision string) ([]byte, error) {
+	cmd := exec.Command("git", "log", "-1", "--pretty=format:'%H\n%an\n%cn'", revision, "--", path)
+	out, err := commandOutput(cmd, repo)
+	if err != nil {
+		return nil, err
+	}
+	return out[1 : len(out)-1], nil
+}
+
 type commit struct {
 	hash     string
-	linesNum uint64
+	linesNum int
 	meta     map[string]string
+}
+
+func (c *commit) String() string {
+	return fmt.Sprintf("%s\t%d\t%s\t%s", c.hash, c.linesNum, c.meta["author"], c.meta["committer"])
 }
 
 type line struct {
@@ -51,8 +73,10 @@ func parseBlame(repo, path, revision string) (*blameOutput, error) {
 		lines:   make([]*line, 0),
 	}
 
+	empty := true
 	scanner := bufio.NewScanner(bytes.NewReader(out))
 	for scanner.Scan() {
+		empty = false
 		firstLine := scanner.Text()
 
 		if firstLine == " <nil>" {
@@ -64,6 +88,7 @@ func parseBlame(repo, path, revision string) (*blameOutput, error) {
 			return nil, fmt.Errorf("blame: invalid line: %q", firstLine)
 		}
 		hash := parts[0]
+		//fmt.Fprintf(os.Stderr, "Hash found: %s\n", hash)
 		prev, err1 := strconv.ParseUint(parts[1], 10, 64)
 		cur, err2 := strconv.ParseUint(parts[2], 10, 64)
 		if err1 != nil || err2 != nil {
@@ -106,9 +131,48 @@ func parseBlame(repo, path, revision string) (*blameOutput, error) {
 		})
 	}
 
-	for _, ln := range bo.lines {
-		ln.com.linesNum++
+	if empty {
+		log, err := gitLog(repo, path, revision)
+		if err != nil {
+			return nil, err
+		}
+
+		slog.Info("Found empty file", slog.String("file", path), slog.String("git log", string(log)))
+
+		parts := strings.Split(string(log), "\n")
+		if len(parts) < 3 {
+			return nil, fmt.Errorf("git log: invalid output %q", string(log))
+		}
+		hash := parts[0]
+		author := parts[1]
+		committer := parts[2]
+		//fmt.Fprintf(os.Stderr, "Hash found: %s\n", hash)
+
+		com := commit{
+			hash:     hash,
+			linesNum: 0,
+			meta:     make(map[string]string),
+		}
+
+		com.meta["author"] = author
+		com.meta["committer"] = committer
+		bo.commits[hash] = &com
+
+	} else {
+		for _, ln := range bo.lines {
+			ln.com.linesNum++
+		}
 	}
+
+	//var builder strings.Builder
+	//builder.WriteString(fmt.Sprintf("File %s has %d commits:\n", path, len(bo.commits)))
+	//for _, com := range bo.commits {
+	//	builder.WriteString("\t")
+	//	builder.WriteString(com.String())
+	//	builder.WriteString("\n")
+	//}
+	//builder.WriteString("\n")
+	//_, _ = fmt.Fprintf(os.Stderr, builder.String())
 
 	return &bo, nil
 }

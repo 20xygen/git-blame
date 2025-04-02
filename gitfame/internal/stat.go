@@ -2,40 +2,14 @@ package internal
 
 import (
 	"path/filepath"
+	"strconv"
+	"strings"
 )
 
-type statFile struct {
-	linesNum int
-}
-
-type statCommit struct {
-	files map[string]statFile
-}
-
 type statUser struct {
-	commits map[string]*statCommit
-}
-
-func (u *statUser) totalLines() int {
-	var sum int
-	for _, com := range u.commits {
-		for _, fl := range com.files {
-			sum += fl.linesNum
-		}
-	}
-	return sum
-}
-
-func (u *statUser) totalFiles() int {
-	var sum int
-	for _, com := range u.commits {
-		sum += len(com.files)
-	}
-	return sum
-}
-
-func (u *statUser) totalCommits() int {
-	return len(u.commits)
+	commits map[string]struct{}
+	files   map[string]struct{}
+	lines   int
 }
 
 type statVals struct {
@@ -44,15 +18,57 @@ type statVals struct {
 	Lines   int `json:"lines"`
 }
 
-func (u *statUser) total() (vals statVals) {
-	vals.Commits = len(u.commits)
-	for _, com := range u.commits {
-		vals.Files += len(com.files)
-		for _, fl := range com.files {
-			vals.Lines += fl.linesNum
-		}
+func (su *statUser) String() string {
+	mx := 0
+
+	var commits []string
+	for hash, _ := range su.commits {
+		commits = append(commits, hash)
 	}
-	return
+	if len(commits) > mx {
+		mx = len(commits)
+	}
+
+	var files []string
+	for path, _ := range su.files {
+		files = append(files, path)
+	}
+	if len(files) > mx {
+		mx = len(files)
+	}
+
+	var builder strings.Builder
+	builder.WriteString(strconv.Itoa(su.lines))
+	builder.WriteString(" lines\n#\tCommits")
+	builder.WriteString(strings.Repeat(" ", 33))
+	builder.WriteString("\tFiles\n")
+
+	for i := range mx {
+		builder.WriteString(strconv.Itoa(i))
+		builder.WriteString("\t")
+
+		if len(commits) > i {
+			builder.WriteString(commits[i])
+		} else {
+			builder.WriteString(strings.Repeat(" ", 40))
+		}
+		builder.WriteString("\t")
+
+		if len(files) > i {
+			builder.WriteString(files[i])
+		}
+		builder.WriteString("\n")
+	}
+
+	return builder.String()
+}
+
+func (su *statUser) total() statVals {
+	return statVals{
+		Commits: len(su.commits),
+		Files:   len(su.files),
+		Lines:   su.lines,
+	}
 }
 
 type stat struct {
@@ -102,10 +118,11 @@ func getFileFilter(ps *params, info *langInfo) func(*file) bool {
 			}
 		}
 
-		path := fl.path()
+		rel, _ := fl.rel(ps.path)
 
 		if len(ps.exclude) > 0 && anyFn(ps.exclude, func(s string) bool {
-			ok, _ := filepath.Match(s, path) // TODO: hale wrong pattern
+			ok, _ := filepath.Match(s, rel)
+			//slog.Info("Exclude match", slog.String("file", fl.name), slog.String("pattern", s), slog.Bool("result", ok))
 			return ok
 		}) {
 			//fmt.Println("Excluded")
@@ -113,7 +130,7 @@ func getFileFilter(ps *params, info *langInfo) func(*file) bool {
 		}
 
 		if len(ps.restrict) > 0 && allFn(ps.restrict, func(s string) bool {
-			ok, _ := filepath.Match(s, path)
+			ok, _ := filepath.Match(s, rel)
 			return !ok
 		}) {
 			//fmt.Println("Restricted")
@@ -130,31 +147,29 @@ func processFile(fl *file, st *stat, ps *params) error {
 		//fmt.Printf("blame parsing error on the %s: %v\n", fl.path(), err)
 		return err
 	}
-	for _, ln := range bo.lines {
+	for _, com := range bo.commits {
 		var name string
 		if !ps.useCommitter {
-			name = ln.com.meta["author"]
+			name = com.meta["author"]
 		} else {
-			name = ln.com.meta["committer"]
+			name = com.meta["committer"]
 		}
 
 		usr, ok := st.users[name]
 		if !ok {
 			usr = &statUser{
-				commits: make(map[string]*statCommit),
+				commits: make(map[string]struct{}),
+				files:   make(map[string]struct{}),
+				lines:   0,
 			}
 			st.users[name] = usr
 		}
 
-		com, ok := usr.commits[ln.com.hash]
-		if !ok {
-			com = &statCommit{
-				files: make(map[string]statFile),
-			}
-			usr.commits[ln.com.hash] = com
-		}
+		//fmt.Fprintf(os.Stderr, "Hash processed: %s\n", com.hash)
 
-		com.files[fl.path()] = statFile{com.files[fl.path()].linesNum + 1}
+		usr.commits[com.hash] = struct{}{}
+		usr.files[fl.path()] = struct{}{}
+		usr.lines += com.linesNum
 	}
 	return nil
 }
@@ -177,6 +192,10 @@ func collectStat(ps *params, info *langInfo) (*stat, error) {
 		}
 		return nil
 	})
+
+	//for name, u := range st.users {
+	//	_, _ = fmt.Fprintf(os.Stderr, "%s: %s\n", name, u.String())
+	//}
 
 	return st, err
 }

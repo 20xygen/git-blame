@@ -3,6 +3,8 @@ package internal
 import (
 	"fmt"
 	"github.com/spf13/cobra"
+	"log/slog"
+	"os"
 	"path/filepath"
 	"strings"
 )
@@ -83,27 +85,24 @@ func command(cmd *cobra.Command, args []string) {
 		format:       format,
 	}
 
-	fmt.Print("\nGiven parameters are:\n\n")
-	fmt.Println(ps.String())
+	logger := setupLogger()
+	slog.SetDefault(logger)
 
 	var err error
 	ps.path, err = filepath.Abs(path)
 	if err != nil {
-		fmt.Printf("Incorrect path: %v\n", err)
-		return
+		os.Exit(1)
 	}
-
-	fmt.Printf("\nCleaned path: %s\n\n", ps.path)
 
 	info, err := getLangInfo()
 	if err != nil {
-		fmt.Printf("Error accured while loading langauges information: %v\n", err)
+		os.Exit(2)
 		return
 	}
 
 	st, err := collectStat(ps, info)
 	if err != nil {
-		fmt.Printf("Error accured while collecting the statistics: %v\n", err)
+		os.Exit(3)
 		return
 	}
 
@@ -116,8 +115,11 @@ func command(cmd *cobra.Command, args []string) {
 		fmt.Print(statJsonLines(st, ps.orderBy))
 	case "csv":
 		fmt.Print(statCSV(st, ps.orderBy))
+	case "pretty":
+		fmt.Print(statPretty(st, ps.orderBy))
 	default:
-		fmt.Print("Wrong format option.\n") // TODO: handle as error
+		slog.Error("Wrong format: " + format) // TODO: hint
+		os.Exit(4)
 	}
 }
 

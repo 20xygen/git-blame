@@ -8,6 +8,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"runtime"
 	"sort"
 	"strings"
 )
@@ -18,7 +19,14 @@ type langInfo struct {
 }
 
 func getLangInfo() (*langInfo, error) {
-	data, err := os.ReadFile("gitfame/configs/language_extensions.json")
+	_, currentFile, _, ok := runtime.Caller(0)
+	var targetFile string
+	if ok {
+		targetFile = filepath.Dir(currentFile) + "/../configs/language_extensions.json"
+	} else {
+		targetFile = "configs/language_extensions.json"
+	}
+	data, err := os.ReadFile(targetFile)
 	if err != nil {
 		return nil, err
 	}
@@ -39,9 +47,9 @@ func getLangInfo() (*langInfo, error) {
 	}
 
 	for _, lang := range languages {
-		info.langToExs[lang.Name] = lang.Extensions
+		info.langToExs[strings.ToLower(lang.Name)] = lang.Extensions
 		for _, ext := range lang.Extensions {
-			info.extToLang[ext] = lang.Name
+			info.extToLang[ext] = strings.ToLower(lang.Name)
 		}
 	}
 
@@ -62,6 +70,14 @@ func (f *file) path() string {
 		return f.dad.path() + "/" + f.name
 	}
 	return f.name
+}
+
+func (f *file) rel(parent string) (string, error) {
+	path, err := filepath.Rel(parent, f.path())
+	if err != nil {
+		return "", err
+	}
+	return path, nil
 }
 
 func (f *file) extension() string {

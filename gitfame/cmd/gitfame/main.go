@@ -7,5 +7,5 @@ import (
 )
 
 func main() {
-	internal.Execute()
+	_ = internal.Execute()
 }
