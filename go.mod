@@ -1,4 +1,4 @@
-module gitlab.com/slon/shad-go
+module gitfame
 
 go 1.22.0
 

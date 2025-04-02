@@ -3,9 +3,9 @@
 package main
 
 import (
-	"gitlab.com/slon/shad-go/gitfame/internal"
+	"gitfame/gitfame/internal/cli"
 )
 
 func main() {
-	_ = internal.Execute()
+	_ = cli.Execute()
 }

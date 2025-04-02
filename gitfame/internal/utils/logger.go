@@ -1,4 +1,4 @@
-package internal
+package utils
 
 import (
 	"log/slog"
@@ -22,9 +22,9 @@ func (w silentWriter) Write(p []byte) (n int, err error) {
 	return len(p), nil
 }
 
-var defaultWriter = os.Stderr // silentWriter{}
+var defaultWriter = silentWriter{}
 
-func setupLogger() *slog.Logger {
+func SetupLogger() *slog.Logger {
 	if err := os.MkdirAll(logDir, 0755); err != nil {
 		return slog.New(slog.NewTextHandler(defaultWriter, nil))
 	}

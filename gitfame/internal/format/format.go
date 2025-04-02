@@ -1,9 +1,11 @@
-package internal
+package format
 
 import (
 	"encoding/csv"
 	"encoding/json"
 	"fmt"
+	"gitfame/gitfame/internal/statistics"
+	"gitfame/gitfame/internal/utils"
 	"github.com/jedib0t/go-pretty/v6/table"
 	"sort"
 	"strings"
@@ -12,23 +14,33 @@ import (
 
 type statUnit struct {
 	Name string `json:"name"`
-	statVals
+	statistics.StatVals
 }
 
-func sorted(st *stat, sortKey []string) []*statUnit {
-	units := make([]*statUnit, 0, len(st.users))
-	for name, user := range st.users {
+func validateSortKey(sortKey []string) error {
+	valid := []string{"lines", "commits", "files", "names"}
+	for _, key := range sortKey {
+		if !utils.Contains(valid, key) {
+			return utils.ErrorInvalidParameters{
+				Info: fmt.Sprintf("unexpected sort key: %s", key),
+			}
+		}
+	}
+	return nil
+}
+
+func sorted(st *statistics.Stat, sortKey []string) ([]*statUnit, error) {
+	units := make([]*statUnit, 0, len(st.Users))
+	for name, user := range st.Users {
 		units = append(units, &statUnit{
 			Name:     name,
-			statVals: user.total(),
+			StatVals: user.Total(),
 		})
 	}
 
-	//names := make([]string, 0, len(st.users))
-	//for _, unit := range units {
-	//	names = append(names, "'"+unit.Name+"'")
-	//}
-	//slog.Info("To sort", slog.Any("sortKey", sortKey), slog.Any("units", names))
+	if err := validateSortKey(sortKey); err != nil {
+		return nil, err
+	}
 
 	fullSortKey := append([]string{}, sortKey...)
 	fullSortKey = append(fullSortKey, "lines")
@@ -59,17 +71,14 @@ func sorted(st *stat, sortKey []string) []*statUnit {
 		return units[i].Name < units[j].Name
 	})
 
-	//names = make([]string, 0, len(st.users))
-	//for _, unit := range units {
-	//	names = append(names, unit.Name)
-	//}
-	//slog.Info("Sorted", slog.Any("units", names))
-
-	return units
+	return units, nil
 }
 
-func statTabular(st *stat, sortKey []string) string {
-	units := sorted(st, sortKey)
+func statTabular(st *statistics.Stat, sortKey []string) (string, error) {
+	units, err := sorted(st, sortKey)
+	if err != nil {
+		return "", err
+	}
 
 	var builder strings.Builder
 	writer := tabwriter.NewWriter(&builder, 0, 0, 1, ' ', 0)
@@ -80,18 +89,21 @@ func statTabular(st *stat, sortKey []string) string {
 	}
 
 	_ = writer.Flush()
-	return builder.String()
+	return builder.String(), nil
 }
 
-func statPretty(st *stat, sortKey []string) string {
-	units := sorted(st, sortKey)
+func statPretty(st *statistics.Stat, sortKey []string) (string, error) {
+	units, err := sorted(st, sortKey)
+	if err != nil {
+		return "", err
+	}
 
 	var builder strings.Builder
 
 	t := table.NewWriter()
 	t.SetOutputMirror(&builder)
 	t.AppendHeader(table.Row{"Name", "Commits", "Files", "Lines"})
-	rows := make([]table.Row, 0, len(st.users))
+	rows := make([]table.Row, 0, len(st.Users))
 	for _, unit := range units {
 		rows = append(rows, table.Row{unit.Name, unit.Commits, unit.Files, unit.Lines})
 	}
@@ -99,17 +111,21 @@ func statPretty(st *stat, sortKey []string) string {
 	t.AppendSeparator()
 	t.Render()
 
-	return builder.String()
+	return builder.String(), nil
 }
 
-func statCSV(st *stat, sortKey []string) string {
-	units := sorted(st, sortKey)
+func statCSV(st *statistics.Stat, sortKey []string) (string, error) {
+	units, err := sorted(st, sortKey)
+	if err != nil {
+		return "", err
+	}
+
 	var builder strings.Builder
 	writer := csv.NewWriter(&builder)
 
-	err := writer.Write([]string{"Name", "Lines", "Commits", "Files"})
+	err = writer.Write([]string{"Name", "Lines", "Commits", "Files"})
 	if err != nil {
-		return "" // TODO
+		return "", err
 	}
 
 	for _, u := range units {
@@ -120,36 +136,44 @@ func statCSV(st *stat, sortKey []string) string {
 			fmt.Sprintf("%d", u.Files),
 		})
 		if err != nil {
-			return ""
+			return "", err
 		}
 	}
 
 	writer.Flush()
 
-	return builder.String()
+	return builder.String(), nil
 }
 
-func statJson(st *stat, sortKey []string) string {
-	units := sorted(st, sortKey)
+func statJson(st *statistics.Stat, sortKey []string) (string, error) {
+	units, err := sorted(st, sortKey)
+	if err != nil {
+		return "", err
+	}
+
 	jsonData, err := json.MarshalIndent(units, "", "  ")
 	if err != nil {
-		return "" // TODO
+		return "", utils.ErrorJsonSerialization{}
 	}
-	return string(jsonData)
+	return string(jsonData), nil
 }
 
-func statJsonLines(st *stat, sortKey []string) string {
-	units := sorted(st, sortKey)
+func statJsonLines(st *statistics.Stat, sortKey []string) (string, error) {
+	units, err := sorted(st, sortKey)
+	if err != nil {
+		return "", err
+	}
+
 	var builder strings.Builder
 
 	for _, unit := range units {
 		jsonData, err := json.Marshal(unit)
 		if err != nil {
-			continue
+			return "", utils.ErrorJsonSerialization{}
 		}
 		builder.Write(jsonData)
 		builder.WriteString("\n")
 	}
 
-	return builder.String()
+	return builder.String(), nil
 }
