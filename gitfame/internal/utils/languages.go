@@ -31,7 +31,7 @@ func GetLangInfo() (*files.LangInfo, error) {
 
 	err = json.Unmarshal(data, &languages)
 	if err != nil {
-		return nil, ErrorJsonDeserialization{}
+		return nil, ErrorJSONDeserialization{}
 	}
 
 	info := &files.LangInfo{

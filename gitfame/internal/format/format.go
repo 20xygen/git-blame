@@ -145,7 +145,7 @@ func statCSV(st *statistics.Stat, sortKey []string) (string, error) {
 	return builder.String(), nil
 }
 
-func statJson(st *statistics.Stat, sortKey []string) (string, error) {
+func statJSON(st *statistics.Stat, sortKey []string) (string, error) {
 	units, err := sorted(st, sortKey)
 	if err != nil {
 		return "", err
@@ -153,12 +153,12 @@ func statJson(st *statistics.Stat, sortKey []string) (string, error) {
 
 	jsonData, err := json.MarshalIndent(units, "", "  ")
 	if err != nil {
-		return "", utils.ErrorJsonSerialization{}
+		return "", utils.ErrorJSONSerialization{}
 	}
 	return string(jsonData), nil
 }
 
-func statJsonLines(st *statistics.Stat, sortKey []string) (string, error) {
+func statJSONLines(st *statistics.Stat, sortKey []string) (string, error) {
 	units, err := sorted(st, sortKey)
 	if err != nil {
 		return "", err
@@ -169,7 +169,7 @@ func statJsonLines(st *statistics.Stat, sortKey []string) (string, error) {
 	for _, unit := range units {
 		jsonData, err := json.Marshal(unit)
 		if err != nil {
-			return "", utils.ErrorJsonSerialization{}
+			return "", utils.ErrorJSONSerialization{}
 		}
 		builder.Write(jsonData)
 		builder.WriteString("\n")

@@ -71,9 +71,7 @@ func (b *BlameOutput) String() string {
 	builder.WriteString("\nNum\tCommit\tContent\n")
 
 	sortedLines := make([]*Line, 0, len(b.Lines))
-	for _, ln := range b.Lines {
-		sortedLines = append(sortedLines, ln)
-	}
+	sortedLines = append(sortedLines, b.Lines...)
 	sort.Slice(sortedLines, func(i, j int) bool {
 		return sortedLines[i].CurPos < sortedLines[j].CurPos
 	})

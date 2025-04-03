@@ -12,9 +12,9 @@ func AutoFormat(st *statistics.Stat, sortKey []string, outFormat string) (string
 	case "tabular":
 		tool = statTabular
 	case "json":
-		tool = statJson
+		tool = statJSON
 	case "json-lines":
-		tool = statJsonLines
+		tool = statJSONLines
 	case "csv":
 		tool = statCSV
 	case "pretty":

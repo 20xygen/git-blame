@@ -109,9 +109,9 @@ func CollectStat(ps *Params, info *files.LangInfo) (*Stat, error) {
 	filter := getFileFilter(ps, info)
 
 	err = d.Walk(func(fl *files.File) error {
-		ok, err := filter(fl)
-		if err != nil {
-			return err
+		ok, errF := filter(fl)
+		if errF != nil {
+			return errF
 		}
 		if ok {
 			return processFile(fl, st, ps)

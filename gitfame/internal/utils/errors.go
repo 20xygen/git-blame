@@ -27,13 +27,13 @@ func (e ErrorInvalidParameters) Error() string {
 	return "invalid parameters"
 }
 
-type ErrorJsonSerialization struct{}
+type ErrorJSONSerialization struct{}
 
-func (e ErrorJsonSerialization) Error() string { return "json serialization error" }
+func (e ErrorJSONSerialization) Error() string { return "json serialization error" }
 
-type ErrorJsonDeserialization struct{}
+type ErrorJSONDeserialization struct{}
 
-func (e ErrorJsonDeserialization) Error() string { return "json deserialization error" }
+func (e ErrorJSONDeserialization) Error() string { return "json deserialization error" }
 
 type ErrorConfigFile struct {
 	E error
