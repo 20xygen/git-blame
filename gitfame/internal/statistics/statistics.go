@@ -25,7 +25,7 @@ func (su *StatUser) String() string {
 	mx := 0
 
 	var commits []string
-	for hash, _ := range su.Commits {
+	for hash := range su.Commits {
 		commits = append(commits, hash)
 	}
 	if len(commits) > mx {
@@ -33,7 +33,7 @@ func (su *StatUser) String() string {
 	}
 
 	var files []string
-	for path, _ := range su.Files {
+	for path := range su.Files {
 		files = append(files, path)
 	}
 	if len(files) > mx {
