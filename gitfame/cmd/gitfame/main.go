@@ -2,6 +2,10 @@
 
 package main
 
-func main() {
+import (
+	"gitfame/gitfame/internal/cli"
+)
 
+func main() {
+	_ = cli.Execute()
 }
