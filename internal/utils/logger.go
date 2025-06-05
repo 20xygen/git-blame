@@ -9,8 +9,8 @@ import (
 )
 
 const (
-	logDir     = "/var/log/gitfame"
-	logFile    = "gitfame.log"
+	logDir     = "/var/log/blame"
+	logFile    = "blame.log"
 	maxSizeMB  = 10 // MB
 	maxBackups = 5
 	maxAgeDays = 30

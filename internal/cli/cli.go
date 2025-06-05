@@ -13,18 +13,19 @@ import (
 
 var (
 	rootCmd = &cobra.Command{
-		Use:   "gitfame",
+		Use:   "blame",
 		Short: "Analyze git blame statistics",
-		Long:  "Gitfame is a simple CLI tool to analyze git blame directory statistics.",
+		Long:  "Blame is a CLI tool to analyze git blame statistics with different formats and features.",
 		Args:  cobra.NoArgs,
 		Run:   command,
 	}
 )
 
-func command(cmd *cobra.Command, args []string) {
+func command(cmd *cobra.Command, _ []string) {
 	ps, err := statistics.GetParams(*cmd)
 	if err != nil {
 		_, _ = fmt.Fprintln(os.Stderr, err)
+		slog.Error(err.Error())
 		os.Exit(utils.CodeParametersParsing)
 		return
 	}
@@ -35,6 +36,7 @@ func command(cmd *cobra.Command, args []string) {
 	ps.Path, err = filepath.Abs(ps.Path)
 	if err != nil {
 		_, _ = fmt.Fprintln(os.Stderr, err)
+		slog.Error(err.Error())
 		os.Exit(utils.CodeAbsolutePath)
 		return
 	}
@@ -42,6 +44,7 @@ func command(cmd *cobra.Command, args []string) {
 	info, err := utils.GetLangInfo()
 	if err != nil {
 		_, _ = fmt.Fprintln(os.Stderr, err)
+		slog.Error(err.Error())
 		os.Exit(utils.CodeLanguageInfo)
 		return
 	}
@@ -49,6 +52,7 @@ func command(cmd *cobra.Command, args []string) {
 	st, err := statistics.CollectStat(ps, info)
 	if err != nil {
 		_, _ = fmt.Fprintln(os.Stderr, err)
+		slog.Error(err.Error())
 		os.Exit(3)
 		return
 	}
@@ -56,10 +60,13 @@ func command(cmd *cobra.Command, args []string) {
 	output, err := format.AutoFormat(st, ps.OrderBy, ps.Format)
 	if err != nil {
 		_, _ = fmt.Fprintln(os.Stderr, err)
+		slog.Error(err.Error())
 		os.Exit(utils.CodeFormat)
 	}
 
 	fmt.Print(output)
+
+	slog.Info("Done successfully")
 }
 
 func Execute() error {
@@ -75,5 +82,5 @@ func init() {
 	rootCmd.Flags().StringSliceP("languages", "l", nil, "Languages filter (comma-separated)")
 	rootCmd.Flags().StringSliceP("exclude", "x", nil, "Exclude glob patterns")
 	rootCmd.Flags().StringSliceP("restrict-to", "t", nil, "Restrict-to glob patterns")
-	rootCmd.Flags().StringP("format", "f", "tabular", "Output format")
+	rootCmd.Flags().StringP("format", "f", "tabular", "Output format (one of 'pretty', 'tabular', 'json', 'json-lines', 'csv')'")
 }
