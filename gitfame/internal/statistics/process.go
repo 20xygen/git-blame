@@ -1,9 +1,9 @@
 package statistics
 
 import (
-	"gitfame/gitfame/internal/utils"
-	"gitfame/gitfame/pkg/files"
-	"gitfame/gitfame/pkg/parsing"
+	"github.com/20xygen/git-blame/gitfame/internal/utils"
+	"github.com/20xygen/git-blame/gitfame/pkg/files"
+	"github.com/20xygen/git-blame/gitfame/pkg/parsing"
 	"path/filepath"
 )
 

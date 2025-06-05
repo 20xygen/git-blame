@@ -2,8 +2,8 @@ package format
 
 import (
 	"fmt"
-	"gitfame/gitfame/internal/statistics"
-	"gitfame/gitfame/internal/utils"
+	"github.com/20xygen/git-blame/gitfame/internal/statistics"
+	"github.com/20xygen/git-blame/gitfame/internal/utils"
 )
 
 func AutoFormat(st *statistics.Stat, sortKey []string, outFormat string) (string, error) {

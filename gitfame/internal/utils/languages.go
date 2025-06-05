@@ -2,7 +2,7 @@ package utils
 
 import (
 	"encoding/json"
-	"gitfame/gitfame/pkg/files"
+	"github.com/20xygen/git-blame/gitfame/pkg/files"
 	"os"
 	"path/filepath"
 	"runtime"

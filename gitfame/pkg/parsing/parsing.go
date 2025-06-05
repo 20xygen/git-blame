@@ -7,7 +7,7 @@ import (
 	"strconv"
 	"strings"
 
-	"gitfame/gitfame/pkg/commands"
+	"github.com/20xygen/git-blame/gitfame/pkg/commands"
 )
 
 func parseEmpty(repo, path, revision string, bo *BlameOutput) error {

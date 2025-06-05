@@ -8,7 +8,7 @@ import (
 	"sort"
 	"strings"
 
-	"gitfame/gitfame/pkg/commands"
+	"github.com/20xygen/git-blame/gitfame/pkg/commands"
 )
 
 type FileInfo struct {
