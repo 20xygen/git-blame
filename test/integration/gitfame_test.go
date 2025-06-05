@@ -15,7 +15,7 @@ import (
 	"github.com/20xygen/git-blame/tools/testtool"
 )
 
-const importPath = "github.com/20xygen/git-blame/gitfame/cmd/gitfame"
+const importPath = "github.com/20xygen/git-blame/cmd/blame"
 
 var binCache testtool.BinCache
 

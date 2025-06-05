@@ -3,7 +3,7 @@
 package main
 
 import (
-	"github.com/20xygen/git-blame/gitfame/internal/cli"
+	"github.com/20xygen/git-blame/internal/cli"
 )
 
 func main() {

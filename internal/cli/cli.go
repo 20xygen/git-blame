@@ -2,9 +2,9 @@ package cli
 
 import (
 	"fmt"
-	"github.com/20xygen/git-blame/gitfame/internal/format"
-	"github.com/20xygen/git-blame/gitfame/internal/statistics"
-	"github.com/20xygen/git-blame/gitfame/internal/utils"
+	"github.com/20xygen/git-blame/internal/format"
+	"github.com/20xygen/git-blame/internal/statistics"
+	"github.com/20xygen/git-blame/internal/utils"
 	"github.com/spf13/cobra"
 	"log/slog"
 	"os"

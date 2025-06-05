@@ -2,8 +2,8 @@ package statistics
 
 import (
 	"fmt"
-	"github.com/20xygen/git-blame/gitfame/internal/utils"
-	"github.com/20xygen/git-blame/gitfame/pkg/files"
+	"github.com/20xygen/git-blame/internal/utils"
+	"github.com/20xygen/git-blame/pkg/files"
 	"github.com/spf13/cobra"
 	"strings"
 )
