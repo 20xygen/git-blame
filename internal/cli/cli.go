@@ -15,7 +15,7 @@ var (
 	rootCmd = &cobra.Command{
 		Use:   "blame",
 		Short: "Analyze git blame statistics",
-		Long:  "Blame is a simple CLI tool to analyze git blame directory statistics.",
+		Long:  "Blame is a CLI tool to analyze git blame statistics with different formats and features.",
 		Args:  cobra.NoArgs,
 		Run:   command,
 	}
@@ -82,5 +82,5 @@ func init() {
 	rootCmd.Flags().StringSliceP("languages", "l", nil, "Languages filter (comma-separated)")
 	rootCmd.Flags().StringSliceP("exclude", "x", nil, "Exclude glob patterns")
 	rootCmd.Flags().StringSliceP("restrict-to", "t", nil, "Restrict-to glob patterns")
-	rootCmd.Flags().StringP("format", "f", "tabular", "Output format")
+	rootCmd.Flags().StringP("format", "f", "tabular", "Output format (one of 'pretty', 'tabular', 'json', 'json-lines', 'csv')'")
 }
